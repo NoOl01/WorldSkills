@@ -40,7 +40,7 @@ fun ManiView(navController: NavController) {
     var isMenuOpen by remember { mutableStateOf(false) }
 
     val offsetX by animateFloatAsState(if (isMenuOpen) 180f else 0f, label = "")
-    val rotation by animateFloatAsState(if (isMenuOpen) -10f else 0f, label = "")
+    val rotation by animateFloatAsState(if (isMenuOpen) -5f else 0f, label = "")
     val scale by animateFloatAsState(if (isMenuOpen) 0.6f else 1f, label = "")
     val cornerRadius by animateDpAsState(
         targetValue = if (isMenuOpen) 40.dp else 0.dp, label = ""
@@ -64,7 +64,10 @@ fun ManiView(navController: NavController) {
                 .clip(RoundedCornerShape(cornerRadius))
                 .pointerInput(Unit) {
                     detectHorizontalDragGestures { _, dragAmount ->
-                        isMenuOpen = dragAmount > 10
+                        when {
+                            dragAmount > 10 -> isMenuOpen = true
+                            dragAmount < -10 -> isMenuOpen = false
+                        }
                     }
                 }
                 .clickable {
@@ -72,23 +75,52 @@ fun ManiView(navController: NavController) {
                 },
             contentAlignment = Alignment.Center
         ) {
-            MainScreen(navController, scope, preferencesManager)
+            MainScreen(onMenuClick = { isMenuOpen = !isMenuOpen })
         }
     }
 }
 
 @Composable
 fun MainScreen(
-    navController: NavController,
-    scope: CoroutineScope,
-    preferencesManager: PreferencesManager,
+    onMenuClick: () -> Unit
 ){
     Box(
         modifier = Modifier.fillMaxSize()
             .background(Color.White),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ){
-        Text("Main")
+        Column (
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp, top = 18.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row (
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                IconButton(onClick = {onMenuClick()}) {
+                    Icon(painter = painterResource(id = R.drawable.drawe), contentDescription = "Меню")
+                }
+                Row (verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(bottom = 26.dp)) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.sparks),
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text("Главная", fontSize = 36.sp, fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 24.dp))
+                }
+                IconButton(onClick = {}) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.bag),
+                        contentDescription = null,
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -103,7 +135,14 @@ fun DrawerContent(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF42A5F5))
-            .padding(16.dp, top = 60.dp),
+            .padding(16.dp, top = 60.dp)
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures { _, dragAmount ->
+                    when {
+                        dragAmount < -10 -> onClose()
+                    }
+                }
+            },
         horizontalAlignment = Alignment.Start
     ) {
         Image(
@@ -117,42 +156,59 @@ fun DrawerContent(
         Text("Эмануэль Кверти", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
         Spacer(Modifier.height(20.dp))
 
-        DrawerItem("Профиль", onClick = onClose)
-        DrawerItem("Корзина", onClick = onClose)
-        DrawerItem("Избранное", onClick = onClose)
-        DrawerItem("Заказы", onClick = onClose)
-        DrawerItem("Уведомления", onClick = onClose)
-        DrawerItem("Настройки", onClick = onClose)
+        DrawerItem("Профиль", onClick = onClose, R.drawable.profile_drawe)
+        DrawerItem("Корзина", onClick = onClose, R.drawable.bag_drawe)
+        DrawerItem("Избранное", onClick = onClose, R.drawable.favorite_drawe)
+        DrawerItem("Заказы", onClick = onClose, R.drawable.orders_drawe)
+        DrawerItem("Уведомления", onClick = onClose, R.drawable.notification_drawe_r)
+        DrawerItem("Настройки", onClick = onClose, R.drawable.settings_drawe)
 
-        Spacer(Modifier.weight(1f))
-
-        Text(
-            "Выйти",
-            fontSize = 18.sp,
-            color = Color.Red,
-            modifier = Modifier
-                .padding(16.dp, bottom = 20.dp)
-                .clickable {
-                scope.launch {
-                    preferencesManager.deleteRegistered()
-                    navController.navigate("login") {
-                        popUpTo("registration") { inclusive = true }
-                    }
-                }
-            }
+        HorizontalDivider(
+            color = Color(0x3BF7F7F9),
+            thickness = 1.dp,
+            modifier = Modifier.padding(vertical = 12.dp)
         )
+
+        Row (verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .clickable {
+                    scope.launch {
+                        preferencesManager.deleteRegistered()
+                        navController.navigate("login") {
+                            popUpTo("registration") { inclusive = true }
+                        }
+                    }
+                }) {
+            Icon(
+                painter = painterResource(id = R.drawable.exit_drawe),
+                contentDescription = "Выйти",
+            )
+            Text(
+                "Выйти",
+                fontSize = 18.sp,
+                color = Color.White,
+                modifier = Modifier
+                    .padding(14.dp)
+            )
+        }
     }
 }
 
 @Composable
-fun DrawerItem(text: String, onClick: () -> Unit) {
-    Text(
-        text,
-        fontSize = 18.sp,
-        color = Color.White,
+fun DrawerItem(text: String, onClick: () -> Unit, image: Int) {
+    Row (verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)
-            .clickable { onClick() }
-    )
+            .clickable { onClick() }) {
+        Icon(
+            painter = painterResource(id = image),
+            contentDescription = text,
+        )
+        Text(
+            text,
+            fontSize = 18.sp,
+            color = Color.White,
+            modifier = Modifier
+                .padding(14.dp)
+        )
+    }
 }
